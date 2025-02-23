@@ -6,13 +6,6 @@ import time
 import signal 
 import obsws_python as obs
 
-HOST="localhost"
-PORT="4455"
-PASSWORD="KQH5Ze21mvypZUkU"
-SEENCOLLECTION_NAME="megane_MIKU"
-PROFILE_NAME="megane_MIKU"
-RECORDING_BOOL=False
-
 addon_keymaps = []
 
 bl_info = {
@@ -21,18 +14,15 @@ bl_info = {
     "category": "Object",
 }
 
-obs_path="C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe"
-obs_dir_path="C:\\Program Files\\obs-studio\\bin\\64bit"
-
 class AddonProPerties(bpy.types.PropertyGroup):
-    OBS_host: bpy.props.StringProperty(name="")
-    OBS_port_number: bpy.props.StringProperty(name="")
+    OBS_host: bpy.props.StringProperty(name="", default="localhost")
+    OBS_port_number: bpy.props.StringProperty(name="", default="4455")
     OBS_password: bpy.props.StringProperty(name="")
     seencollection_name: bpy.props.StringProperty(name="")
     profile_name: bpy.props.StringProperty(name="")
-    record_start_wait_time: bpy.props.FloatProperty(name="")
-    obs_dir_path: bpy.props.StringProperty(name="")
-    recording_bool: bpy.props.BoolProperty(name="Recording")
+    record_start_wait_time: bpy.props.FloatProperty(name="", default=1.0)
+    obs_dir_path: bpy.props.StringProperty(name="", default="C:\\Program Files\\obs-studio\\bin\\64bit")
+    recording_bool: bpy.props.BoolProperty(name="Recording", default=False)
 
 
 class recording_button_operator(bpy.types.Operator):
@@ -41,8 +31,11 @@ class recording_button_operator(bpy.types.Operator):
 
     def execute(self, context):
         
-        start_recording()
-        bpy.ops.wm.message_operator('INVOKE_DEFAULT')
+        bool = start_recording()
+        if bool:
+            self.report({'INFO'}, "OBSの録画を開始しました")
+        else:
+            self.report({'ERROR'}, "OBSの録画を開始できませんでした")
         return {'FINISHED'}
 
 class IntegrationTerminationProcessing(bpy.types.Operator):
@@ -51,6 +44,12 @@ class IntegrationTerminationProcessing(bpy.types.Operator):
 
     def execute(self, context):
         stop_recording(self)
+
+        try:
+            bpy.ops.wm.save_file_operator()
+        except:
+            self.report({'ERROR'}, "バックアップの生成に失敗しました")
+            return {'FINISHED'}
 
         bpy.ops.wm.quit_blender()
         return {'FINISHED'}
@@ -106,20 +105,15 @@ def is_obs_running():
 def start_OBS(dummy):#ここに引数を必ず1つは入れないと動かない
     if not bpy.context.scene.addon_pro.recording_bool:
         return
-    os.chdir(obs_dir_path)
+    os.chdir(bpy.context.scene.addon_pro.obs_dir_path)
+    obs_path=os.path.join(bpy.context.scene.addon_pro.obs_dir_path, "obs64.exe")
     subprocess.Popen([obs_path])
 
-    if timer is not None:
-        bpy.app.timers.unregister(timer)
-        timer=None
-
-    timer=bpy.app.timers.register(start_recording, first_interval=5)
-    bpy.app.timers.unregister(timer)
-    timer=None
+    start_recording()
+        
 
 
 def stop_OBS():
-    connect_OBS().__exit__
     return
     obs_process=find_obs_process()
 
@@ -150,16 +144,26 @@ def stop_recording(self):
 
 
 def connect_OBS():
-    return obs.ReqClient(host=bpy.context.scene.addon_pro.OBS_host, port=bpy.context.scene.addon_pro.OBS_port_number, password=bpy.context.scene.addon_pro.OBS_password)
+    try:
+        return obs.ReqClient(host=bpy.context.scene.addon_pro.OBS_host, port=bpy.context.scene.addon_pro.OBS_port_number, password=bpy.context.scene.addon_pro.OBS_password)
+    except Exception as e:
+        print(f"OBSへの接続に失敗しました。ERROR: {e}")
+        return None
 
 def start_recording():
-    if not bpy.context.scene.addon_pro.recording_bool:
+    client = connect_OBS()
+    if client.get_record_status():
         return
-    client = obs.ReqClient(host=bpy.context.scene.addon_pro.OBS_host, port=bpy.context.scene.addon_pro.OBS_port_number, password=bpy.context.scene.addon_pro.OBS_password)
-    client.set_current_profile(bpy.context.scene.addon_pro.profile_name)
-    client.set_current_scene_collection(bpy.context.scene.addon_pro.seencollection_name)
-    client.start_record()
-    client.disconnect()
+    try:
+        client.set_current_profile(bpy.context.scene.addon_pro.profile_name)
+        client.set_current_scene_collection(bpy.context.scene.addon_pro.seencollection_name)
+        client.start_record()
+        client.disconnect()
+    except Exception as e:
+        print(f"OBSの録画開始処理に失敗しました ERROR: {e}")
+        return False
+    
+    return True
 
 
 
@@ -187,8 +191,10 @@ def unregister():
     bpy.utils.unregister_class(Addon_UI)
     del bpy.types.Scene.addon_pro
 
-    for km, kmi in addon_keymaps:
-        km.keymap_items.remive(kmi)
+    wm=bpy.context.window_manager
+    km=wm.keyconfigs.addon.keymaps['Window']
+    for kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
     addon_keymaps.clear()
 
 
