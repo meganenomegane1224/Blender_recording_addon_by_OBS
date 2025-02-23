@@ -9,9 +9,11 @@ import obsws_python as obs
 addon_keymaps = []
 
 bl_info = {
-    "name": "Hello World Add-on",
-    "blender": (2, 80, 0),
-    "category": "Object",
+    "name": "Recording add-on by obs",
+    "blender": (3,6,0),
+    "location": "none",
+    "description": "がんばって",
+    "category": "System",
 }
 
 class AddonProPerties(bpy.types.PropertyGroup):
