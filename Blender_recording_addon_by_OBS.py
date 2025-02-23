@@ -108,6 +108,7 @@ def start_OBS(dummy):#ここに引数を必ず1つは入れないと動かない
     os.chdir(bpy.context.scene.addon_pro.obs_dir_path)
     obs_path=os.path.join(bpy.context.scene.addon_pro.obs_dir_path, "obs64.exe")
     subprocess.Popen([obs_path])
+    time.sleep(bpy.context.scene.addon_pro.record_start_wait_time)
 
     start_recording()
         
@@ -151,10 +152,8 @@ def connect_OBS():
         return None
 
 def start_recording():
-    client = connect_OBS()
-    if client.get_record_status():
-        return
     try:
+        client = connect_OBS()
         client.set_current_profile(bpy.context.scene.addon_pro.profile_name)
         client.set_current_scene_collection(bpy.context.scene.addon_pro.seencollection_name)
         client.start_record()
