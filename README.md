@@ -1,1 +1,3 @@
 # Blender_recording_addon_by_OBS
+
+Blenderが起動したらOBSを起動して、特定の録画設定を呼び出した後に録画を開始する。Blenderを閉じると録画を停止するアドオンになる予定だったやつ。
