@@ -50,13 +50,9 @@ class IntegrationTerminationProcessing(bpy.types.Operator):
     bl_idname="wm.integration_termination_processing"
 
     def execute(self, context):
-        if not find_obs_process:
-            print("見つからないよ")
-            return
-        print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
         stop_recording(self)
-        stop_OBS()
 
+        bpy.ops.wm.quit_blender()
         return {'FINISHED'}
 
 class stop_recording_button_operator(bpy.types.Operator):
@@ -123,6 +119,8 @@ def start_OBS(dummy):#ここに引数を必ず1つは入れないと動かない
 
 
 def stop_OBS():
+    connect_OBS().__exit__
+    return
     obs_process=find_obs_process()
 
     if obs_process:
@@ -168,7 +166,6 @@ def start_recording():
 def register():
     bpy.app.handlers.load_post.append(start_OBS)
     bpy.utils.register_class(AddonProPerties)
-    bpy.utils.register_class(message_class)
     bpy.utils.register_class(recording_button_operator)
     bpy.utils.register_class(IntegrationTerminationProcessing)
     bpy.utils.register_class(stop_recording_button_operator)
@@ -184,7 +181,6 @@ def register():
 def unregister():
     bpy.app.handlers.load_post.remove(start_OBS)
     bpy.utils.unregister_class(AddonProPerties)
-    bpy.utils.unregister_class(message_class)
     bpy.utils.unregister_class(recording_button_operator)
     bpy.utils.unregister_class(IntegrationTerminationProcessing)
     bpy.utils.unregister_class(stop_recording_button_operator)
